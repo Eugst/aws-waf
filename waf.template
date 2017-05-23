@@ -1,0 +1,216 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS WAF stack.",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+        "Label": {
+          "default": "Rate-Based Blacklisting Parameters"
+        },
+        "Parameters": ["RequestThreshold", "WAFBlockPeriod", "WAFQuarantinePeriod"]
+      }],
+      "ParameterLabels": {
+        "RequestThreshold": {
+          "default": "Request Threshold"
+        },
+        "WAFBlockPeriod": {
+          "default": "WAF Block Period"
+        },
+        "WAFQuarantinePeriod": {
+          "default": "WAF Quarantine Period"
+        }
+      }
+    }
+  },
+
+  "Parameters": {
+    "RequestThreshold": {
+      "Type": "Number",
+      "Default": "400",
+      "Description": "Enter the maximum acceptable request per second per IP address. Default: 400 requests per minute"
+    },
+    "WAFBlockPeriod": {
+      "Type": "Number",
+      "Default": "240",
+      "Description": "Enter for how long (in minutes) IP addresses should be blocked. Default: 4 hours (240 minutes)"
+    },
+    "WAFQuarantinePeriod": {
+      "Type": "Number",
+      "Default": "240",
+      "Description": "Enter for how long (in minutes) IP addresses should be kept in quarantine. Default: 4 hours (240 minutes)"
+    },
+    "S3Bucket": {
+      "Type": "String",
+      "Description": "S3Bucket where script and current logs saved.",
+    },
+    "EsHost": {
+      "Type": "String",
+      "Description": "ElasticSearch host"
+    },
+    "EsPort": {
+      "Type": "String",
+      "Description": "ElasticSearch port",
+      "Default": "443"
+    }
+  },
+
+  "Resources": {
+    "WAFManualBlockSet": {
+      "Type": "AWS::WAFRegional::IPSet",
+      "Properties": {
+        "Name": "Manual Block Set"
+      }
+    },
+    "WAFAutoBlockSet": {
+      "Type": "AWS::WAFRegional::IPSet",
+      "Properties": {
+        "Name": "Auto Block Set"
+      }
+    },
+    "WAFAutoCountSet": {
+      "Type": "AWS::WAFRegional::IPSet",
+      "Properties": {
+        "Name": "Auto Count Set"
+      }
+    },
+    "WAFManualBlockRule": {
+      "Type": "AWS::WAFRegional::Rule",
+      "DependsOn": "WAFManualBlockSet",
+      "Properties": {
+        "Name": "Manual Block Rule",
+        "MetricName": "ManualBlockRule",
+        "Predicates": [{
+          "DataId": {
+            "Ref": "WAFManualBlockSet"
+          },
+          "Negated": false,
+          "Type": "IPMatch"
+        }]
+      }
+    },
+    "WAFAutoBlockRule": {
+      "Type": "AWS::WAFRegional::Rule",
+      "DependsOn": "WAFAutoBlockSet",
+      "Properties": {
+        "Name": "Auto Block Rule",
+        "MetricName": "AutoBlockRule",
+        "Predicates": [{
+          "DataId": {
+            "Ref": "WAFAutoBlockSet"
+          },
+          "Negated": false,
+          "Type": "IPMatch"
+        }]
+      }
+    },
+    "WAFAutoCountRule": {
+      "Type": "AWS::WAFRegional::Rule",
+      "DependsOn": "WAFAutoCountSet",
+      "Properties": {
+        "Name": "Auto Count Rule",
+        "MetricName": "AutoCountRule",
+        "Predicates": [{
+          "DataId": {
+            "Ref": "WAFAutoCountSet"
+          },
+          "Negated": false,
+          "Type": "IPMatch"
+        }]
+      }
+    },
+    "WAFWebACL": {
+      "Type": "AWS::WAFRegional::WebACL",
+      "DependsOn": ["WAFManualBlockRule", "WAFAutoBlockRule", "WAFAutoCountRule"],
+      "Properties": {
+        "Name": "Malicious Requesters",
+        "DefaultAction": {
+          "Type": "ALLOW"
+        },
+        "MetricName": "MaliciousRequesters",
+        "Rules": [{
+          "Action": {
+            "Type": "BLOCK"
+          },
+          "Priority": 1,
+          "RuleId": {
+            "Ref": "WAFManualBlockRule"
+          }
+        }, {
+          "Action": {
+            "Type": "BLOCK"
+          },
+          "Priority": 2,
+          "RuleId": {
+            "Ref": "WAFAutoBlockRule"
+          }
+        }, {
+          "Action": {
+            "Type": "COUNT"
+          },
+          "Priority": 3,
+          "RuleId": {
+            "Ref": "WAFAutoCountRule"
+          }
+        }]
+      }
+    }
+  },
+
+  "Outputs": {
+    "RequestThreshold": {
+      "Description": "Request Threshold",
+      "Value": {
+        "Ref": "RequestThreshold"
+      }
+    },
+    "WAFBlockPeriod": {
+      "Description": "WAF Block Period",
+      "Value": {
+        "Ref": "WAFBlockPeriod"
+      }
+    },
+    "WAFQuarantinePeriod": {
+      "Description": "WAF Quarantine Period",
+      "Value": {
+        "Ref": "WAFQuarantinePeriod"
+      }
+    },
+    "ManualBlockIPSetID": {
+      "Description": "Manual Block IP Set ID",
+      "Value": {
+        "Ref": "WAFManualBlockSet"
+      }
+    },
+    "AutoBlockIPSetID": {
+      "Description": "Auto Block IP Set ID",
+      "Value": {
+        "Ref": "WAFAutoBlockSet"
+      }
+    },
+    "AutoCountIPSetID": {
+      "Description": "Auto Count IP Set ID",
+      "Value": {
+        "Ref": "WAFAutoCountSet"
+      }
+    },
+    "S3Bucket": {
+      "Description": "Forwarded parameter",
+      "Value": {
+        "Ref": "S3Bucket"
+      }
+    },
+    "EsHost": {
+      "Description": "Forwarded parameter",
+      "Value": {
+        "Ref": "EsHost"
+      }
+    },
+    "EsPort": {
+      "Description": "Forwarded parameter",
+      "Value": {
+        "Ref": "EsPort"
+      }
+    }
+  }
+}
