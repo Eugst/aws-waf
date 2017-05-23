@@ -347,7 +347,7 @@ def update_waf_ip_set(outstanding_requesters, ip_set_id, ip_set_already_blocked)
     return counter
 
 
-def main():
+def main(stack_name):
     print '[main] Start'
     key_name = 'current_es_outstanding_requesters'
 
@@ -373,7 +373,6 @@ def main():
 
             outputs = {}
             cf = boto3.client('cloudformation')
-            stack_name = 'waf-rate'
             response = cf.describe_stacks(StackName=stack_name)
             for e in response['Stacks'][0]['Outputs']:
                 outputs[e['OutputKey']] = e['OutputValue']
@@ -460,4 +459,4 @@ def main():
         raise e
     print '[main] End'
 
-main()
+main('waf-rate')
