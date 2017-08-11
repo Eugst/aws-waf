@@ -58,8 +58,7 @@ def get_elastic_outstanding_requesters():
                 "last2minute": {
                     "filter": {"bool": {
                         "must": [
-                            {"range": {"datetime": {"gte": "now-2m", "lte": "now"}}},
-                            {"regexp": {"x-forwarded-for": ".*(\.|\:).*"}}
+                            {"range": {"datetime": {"gte": "now-2m", "lte": "now"}}}
                         ],
                         "must_not": [
                             {"regexp": {"user-agent": ".*(gsa-crawler).*"}},
@@ -88,12 +87,7 @@ def get_elastic_outstanding_requesters():
         #--------------------------------------------------------------------------------------------------------------
         num_requests = response['aggregations']['last2minute']['group_by_state']['sum_other_doc_count']
         for ip_array in response['aggregations']['last2minute']['group_by_state']['buckets']:
-            ipx = ip_array['key']
-            if ipx.find(',') > 0:
-                ipx = ipx.split(',')[0]
-                if ipx.find(':') > 0:
-                    ipx = ipx.split(':')[0]
-
+            ipx = ip_array['key_as_string']
             result[ipx] = ip_array['doc_count']
 
         #--------------------------------------------------------------------------------------------------------------
@@ -431,7 +425,7 @@ def main(stack_name):
 
         cw = boto3.client('cloudwatch')
         response = cw.put_metric_data(
-            Namespace='WAFRateBlacklist-%s'%OUTPUT_BUCKET,
+            Namespace='WAFRateBlacklist-%s' % OUTPUT_BUCKET,
             MetricData=[
                 {
                     'MetricName': 'IPBlocked',
@@ -453,10 +447,9 @@ def main(stack_name):
                 }
             ]
         )
-
+        print '[main] End'
         return outstanding_requesters
     except Exception as e:
         raise e
-    print '[main] End'
 
 main('waf-rate')
