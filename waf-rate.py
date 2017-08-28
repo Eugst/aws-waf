@@ -87,7 +87,11 @@ def get_elastic_outstanding_requesters():
         #--------------------------------------------------------------------------------------------------------------
         num_requests = response['aggregations']['last2minute']['group_by_state']['sum_other_doc_count']
         for ip_array in response['aggregations']['last2minute']['group_by_state']['buckets']:
-            ipx = ip_array['key_as_string']
+            ipx = ip_array['key']
+            if ipx.find(',') > 0:
+                ipx = ipx.split(',')[0]
+                if ipx.find(':') > 0:
+                    ipx = ipx.split(':')[0]
             result[ipx] = ip_array['doc_count']
 
         #--------------------------------------------------------------------------------------------------------------
