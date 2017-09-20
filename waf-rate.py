@@ -64,8 +64,8 @@ def get_elastic_outstanding_requesters():
                             {"regexp": {"user-agent": ".*(gsa-crawler).*"}},
                             {"regexp": {"user-agent": ".*(ELB-HealthChecker).*"}},
                             {"regexp": {"user-agent": ".*(Amazon CloudFront).*"}},
-                            {"regexp": {"request": ".*\.css.*"}},
-                            {"regexp": {"request": ".*\.js.*"}}
+                            {"regexp": {"request": ".*(\.css).*"}},
+                            {"regexp": {"request": ".*(\.js).*"}}
                         ]
                     }},
                     "aggs": {
