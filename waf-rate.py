@@ -364,20 +364,20 @@ def notify_slack(ip_set_id, updates_list):
     if ip_set_id == IP_SET_ID_AUTO_BLOCK:
         message_added = ':no_pedestrians:IP(s) blocked for next %s minutes' % str(BLACKLIST_BLOCK_PERIOD)
         message_deleted = ':white_check_mark:IP(s) unblocked'
-    else:
-        message_added = ':pill:IP(s) moved to quarantine for next %s minutes' % str(BLACKLIST_COUNT_PERIOD)
-        message_deleted = ':white_check_mark:IP(s) removed from quarantine'
-    ips_added = []
-    ips_deleted = []
-    for item in updates_list:
-        if item['Action'] == 'INSERT':
-            ips_added.append(str(item['IPSetDescriptor']['Value']))
-        else:
-            ips_deleted.append(str(item['IPSetDescriptor']['Value']))
-    if ips_added:
-        slacking([{"pretext": message_added, "text": ",\n".join(ips_added)}])
-    if ips_deleted:
-        slacking([{"pretext": message_deleted, "text": ",\n".join(ips_deleted)}])
+        # else:
+        #     message_added = ':pill:IP(s) moved to quarantine for next %s minutes' % str(BLACKLIST_COUNT_PERIOD)
+        #     message_deleted = ':white_check_mark:IP(s) removed from quarantine'
+        ips_added = []
+        ips_deleted = []
+        for item in updates_list:
+            if item['Action'] == 'INSERT':
+                ips_added.append(str(item['IPSetDescriptor']['Value']))
+            else:
+                ips_deleted.append(str(item['IPSetDescriptor']['Value']))
+        if ips_added:
+            slacking([{"pretext": message_added, "text": ",\n".join(ips_added)}])
+        if ips_deleted:
+            slacking([{"pretext": message_deleted, "text": ",\n".join(ips_deleted)}])
 
 
 def main(stack_name):
