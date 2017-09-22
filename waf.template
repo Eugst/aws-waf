@@ -42,7 +42,7 @@
     },
     "S3Bucket": {
       "Type": "String",
-      "Description": "S3Bucket where script and current logs saved.",
+      "Description": "S3Bucket where script and current logs saved."
     },
     "EsHost": {
       "Type": "String",
@@ -56,6 +56,12 @@
   },
 
   "Resources": {
+    "WAFManualAllowSet": {
+      "Type": "AWS::WAFRegional::IPSet",
+      "Properties": {
+        "Name": "Manual Allow Set"
+      }
+    },
     "WAFManualBlockSet": {
       "Type": "AWS::WAFRegional::IPSet",
       "Properties": {
@@ -72,6 +78,21 @@
       "Type": "AWS::WAFRegional::IPSet",
       "Properties": {
         "Name": "Auto Count Set"
+      }
+    },
+    "WAFManualAllowRule": {
+      "Type": "AWS::WAFRegional::Rule",
+      "DependsOn": "WAFManualAllowSet",
+      "Properties": {
+        "Name": "Manual Allow Rule",
+        "MetricName": "ManualAllowRule",
+        "Predicates": [{
+          "DataId": {
+            "Ref": "WAFManualAllowSet"
+          },
+          "Negated": false,
+          "Type": "IPMatch"
+        }]
       }
     },
     "WAFManualBlockRule": {
@@ -121,38 +142,51 @@
     },
     "WAFWebACL": {
       "Type": "AWS::WAFRegional::WebACL",
-      "DependsOn": ["WAFManualBlockRule", "WAFAutoBlockRule", "WAFAutoCountRule"],
+      "DependsOn": ["WAFManualAllowRule","WAFManualBlockRule", "WAFAutoBlockRule", "WAFAutoCountRule"],
       "Properties": {
         "Name": "Malicious Requesters",
         "DefaultAction": {
           "Type": "ALLOW"
         },
         "MetricName": "MaliciousRequesters",
-        "Rules": [{
-          "Action": {
-            "Type": "BLOCK"
+        "Rules": [
+          {
+            "Action": {
+              "Type": "ALLOW"
+            },
+            "Priority": 1,
+            "RuleId": {
+              "Ref": "WAFManualAllowRule"
+            }
           },
-          "Priority": 1,
-          "RuleId": {
-            "Ref": "WAFManualBlockRule"
-          }
-        }, {
-          "Action": {
-            "Type": "BLOCK"
+          {
+            "Action": {
+              "Type": "BLOCK"
+            },
+            "Priority": 2,
+            "RuleId": {
+              "Ref": "WAFManualBlockRule"
+            }
           },
-          "Priority": 2,
-          "RuleId": {
-            "Ref": "WAFAutoBlockRule"
-          }
-        }, {
-          "Action": {
-            "Type": "COUNT"
+          {
+            "Action": {
+              "Type": "BLOCK"
+            },
+            "Priority": 3,
+            "RuleId": {
+              "Ref": "WAFAutoBlockRule"
+            }
           },
-          "Priority": 3,
-          "RuleId": {
-            "Ref": "WAFAutoCountRule"
+          {
+            "Action": {
+              "Type": "COUNT"
+            },
+            "Priority": 4,
+            "RuleId": {
+              "Ref": "WAFAutoCountRule"
+            }
           }
-        }]
+        ]
       }
     }
   },

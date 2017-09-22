@@ -5,6 +5,8 @@ import time
 import math
 from elasticsearch import Elasticsearch
 import warnings
+from slacker import Slacker
+import os
 
 warnings.filterwarnings('ignore')
 
@@ -231,6 +233,7 @@ def waf_update_ip_set(ip_set_id, updates_list):
                 response = waf.update_ip_set(IPSetId=ip_set_id,
                     ChangeToken=waf.get_change_token()['ChangeToken'],
                     Updates=updates_list)
+                notify_slack(ip_set_id, updates_list)
             except Exception, e:
                 delay = math.pow(2, attempt)
                 print "[waf_update_ip_set] Retrying in %d seconds..." % (delay)
@@ -345,6 +348,23 @@ def update_waf_ip_set(outstanding_requesters, ip_set_id, ip_set_already_blocked)
 
     print "[update_waf_ip_set] End"
     return counter
+
+
+def notify_slack(ip_set_id, updates_list):
+    if ip_set_id == IP_SET_ID_AUTO_BLOCK:
+        message = ':no_pedestrians:IP(s) blocked for next %s minutes' % str(BLACKLIST_BLOCK_PERIOD)
+    else:
+        message = ':pill:IP(s) moved to quarantine for next %s minutes' % str(BLACKLIST_COUNT_PERIOD)
+    ips = []
+    for item in updates_list:
+        ips.append(str(item['IPSetDescriptor']['Value']))
+    slack = Slacker(os.environ['SLACK_TOKEN'])
+    slack.chat.post_message(
+        channel=os.environ['SLACK_CHANNEL'],
+        text='',
+        as_user=True,
+        attachments=[{"pretext": message, "text": ",\n".join(ips)}]
+    )
 
 
 def main(stack_name):
