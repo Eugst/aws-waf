@@ -350,21 +350,34 @@ def update_waf_ip_set(outstanding_requesters, ip_set_id, ip_set_already_blocked)
     return counter
 
 
-def notify_slack(ip_set_id, updates_list):
-    if ip_set_id == IP_SET_ID_AUTO_BLOCK:
-        message = ':no_pedestrians:IP(s) blocked for next %s minutes' % str(BLACKLIST_BLOCK_PERIOD)
-    else:
-        message = ':pill:IP(s) moved to quarantine for next %s minutes' % str(BLACKLIST_COUNT_PERIOD)
-    ips = []
-    for item in updates_list:
-        ips.append(str(item['IPSetDescriptor']['Value']))
+def slacking(attachments):
     slack = Slacker(os.environ['SLACK_TOKEN'])
     slack.chat.post_message(
         channel=os.environ['SLACK_CHANNEL'],
         text='',
         as_user=True,
-        attachments=[{"pretext": message, "text": ",\n".join(ips)}]
+        attachments=attachments
     )
+
+
+def notify_slack(ip_set_id, updates_list):
+    if ip_set_id == IP_SET_ID_AUTO_BLOCK:
+        message_added = ':no_pedestrians:IP(s) blocked for next %s minutes' % str(BLACKLIST_BLOCK_PERIOD)
+        message_deleted = ':white_check_mark:IP(s) unblocked'
+        # else:
+        #     message_added = ':pill:IP(s) moved to quarantine for next %s minutes' % str(BLACKLIST_COUNT_PERIOD)
+        #     message_deleted = ':white_check_mark:IP(s) removed from quarantine'
+        ips_added = []
+        ips_deleted = []
+        for item in updates_list:
+            if item['Action'] == 'INSERT':
+                ips_added.append(str(item['IPSetDescriptor']['Value']))
+            else:
+                ips_deleted.append(str(item['IPSetDescriptor']['Value']))
+        if ips_added:
+            slacking([{"pretext": message_added, "text": ",\n".join(ips_added)}])
+        if ips_deleted:
+            slacking([{"pretext": message_deleted, "text": ",\n".join(ips_deleted)}])
 
 
 def main(stack_name):
