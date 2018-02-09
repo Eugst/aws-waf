@@ -44,10 +44,6 @@
       "Type": "String",
       "Description": "S3Bucket where script and current logs saved."
     },
-    "EsHost": {
-      "Type": "String",
-      "Description": "ElasticSearch host"
-    },
     "EsPort": {
       "Type": "String",
       "Description": "ElasticSearch port",
@@ -236,9 +232,7 @@
     },
     "EsHost": {
       "Description": "Forwarded parameter",
-      "Value": {
-        "Ref": "EsHost"
-      }
+      "Value": {"Fn::ImportValue": {"Fn::Sub": "EKK2-DomainEndpoint"}}
     },
     "EsPort": {
       "Description": "Forwarded parameter",
