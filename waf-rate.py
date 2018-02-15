@@ -82,7 +82,7 @@ def get_elastic_outstanding_requesters():
         }
 
         response = es.search(
-            index='logmonitor',
+            index='logmonitor-' + datetime.datetime.now().strftime("%Y-%m-%d"),
             body=body2
         )
 
